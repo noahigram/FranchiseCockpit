@@ -86,7 +86,7 @@ def apply_custom_css():
     st.markdown("""
     <style>
     .main {
-        background-color: #f5f7f9;
+        background-color: #1e1e1e;
     }
     .stApp {
         max-width: 1200px;
@@ -104,28 +104,28 @@ def apply_custom_css():
     .stButton button:hover {
         background-color: #43658b;
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     }
     .best-case {
-        background-color: #d4edda;
+        background-color: rgba(40, 167, 69, 0.2);
         border-radius: 10px;
         padding: 1rem;
         margin: 1rem 0;
         border-left: 5px solid #28a745;
     }
     .worst-case {
-        background-color: #f8d7da;
+        background-color: rgba(220, 53, 69, 0.2);
         border-radius: 10px;
         padding: 1rem;
         margin: 1rem 0;
         border-left: 5px solid #dc3545;
     }
     .scenario-card {
-        background-color: white;
+        background-color: #2d2d2d;
         border-radius: 10px;
         padding: 1.5rem;
         margin: 1rem 0;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
     .metrics-container {
         display: flex;
@@ -134,7 +134,7 @@ def apply_custom_css():
         margin: 1rem 0;
     }
     h1, h2, h3 {
-        color: #43658b;
+        color: #4e89ae;
     }
     .stProgress > div > div {
         background-color: #4e89ae;
@@ -160,11 +160,11 @@ def apply_custom_css():
         font-weight: bold;
     }
     .business-health-container {
-        background-color: white;
+        background-color: #2d2d2d;
         border-radius: 10px;
         padding: 1rem;
         margin: 1rem 0;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         text-align: center;
     }
     .decision-history {
@@ -191,17 +191,17 @@ def display_metric_changes(consequences):
         value = consequences[metric]
         with cols[i]:
             if value > 0 and metric != 'risk_level':
-                st.markdown(f"<div style='color:green'><b>{metric.replace('_', ' ').title()}</b>: {icons['increase']} ${abs(value):,}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='color:#4CAF50'><b>{metric.replace('_', ' ').title()}</b>: {icons['increase']} ${abs(value):,}</div>", unsafe_allow_html=True)
             elif value < 0 and metric != 'risk_level':
-                st.markdown(f"<div style='color:red'><b>{metric.replace('_', ' ').title()}</b>: {icons['decrease']} ${abs(value):,}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='color:#FF5252'><b>{metric.replace('_', ' ').title()}</b>: {icons['decrease']} ${abs(value):,}</div>", unsafe_allow_html=True)
             elif value == 0 and metric != 'risk_level':
-                st.markdown(f"<div><b>{metric.replace('_', ' ').title()}</b>: {icons['neutral']} ${abs(value):,}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='color:#e1e1e1'><b>{metric.replace('_', ' ').title()}</b>: {icons['neutral']} ${abs(value):,}</div>", unsafe_allow_html=True)
             elif value > 0 and metric == 'risk_level':
-                st.markdown(f"<div style='color:red'><b>{metric.replace('_', ' ').title()}</b>: {icons['increase']} {abs(value)}%</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='color:#FF5252'><b>{metric.replace('_', ' ').title()}</b>: {icons['increase']} {abs(value)}%</div>", unsafe_allow_html=True)
             elif value < 0 and metric == 'risk_level':
-                st.markdown(f"<div style='color:green'><b>{metric.replace('_', ' ').title()}</b>: {icons['decrease']} {abs(value)}%</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='color:#4CAF50'><b>{metric.replace('_', ' ').title()}</b>: {icons['decrease']} {abs(value)}%</div>", unsafe_allow_html=True)
             else:
-                st.markdown(f"<div><b>{metric.replace('_', ' ').title()}</b>: {icons['neutral']} {abs(value)}%</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='color:#e1e1e1'><b>{metric.replace('_', ' ').title()}</b>: {icons['neutral']} {abs(value)}%</div>", unsafe_allow_html=True)
 
 # Function to display the business metrics dashboard
 def display_business_dashboard(metrics):
@@ -229,13 +229,13 @@ def display_business_dashboard(metrics):
         
         # Display health score with color
         st.markdown(f"""
-        <div style='padding: 1rem; border: 2px solid {status_color}; border-radius: 0.5rem; margin-bottom: 1rem;'>
+        <div style='padding: 1rem; border: 2px solid {status_color}; border-radius: 0.5rem; margin-bottom: 1rem; background-color: rgba(45, 45, 45, 0.7);'>
             <div style='display: flex; justify-content: space-between; margin-bottom: 0.5rem;'>
-                <span style='font-weight: bold;'>Health Score: <span style='color: {status_color};'>{health_score}%</span></span>
-                <span style='font-weight: bold;'>Status: <span style='color: {status_color};'>{status}</span></span>
+                <span style='font-weight: bold; color: #ffffff;'>Health Score: <span style='color: {status_color};'>{health_score}%</span></span>
+                <span style='font-weight: bold; color: #ffffff;'>Status: <span style='color: {status_color};'>{status}</span></span>
             </div>
-            <div style='font-style: italic;'>{description}</div>
-            <div style='background-color: #e9ecef; height: 0.5rem; border-radius: 0.25rem; margin-top: 0.5rem;'>
+            <div style='font-style: italic; color: #e1e1e1;'>{description}</div>
+            <div style='background-color: #333333; height: 0.5rem; border-radius: 0.25rem; margin-top: 0.5rem;'>
                 <div style='background-color: {status_color}; width: {health_score}%; height: 100%; border-radius: 0.25rem;'></div>
             </div>
         </div>
