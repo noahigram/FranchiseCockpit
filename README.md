@@ -1,18 +1,22 @@
-# Best Case, Worst Case Franchise Simulator
+# Franchise Cockpit Simulator
 
-A Streamlit application that simulates different franchise scenarios and their outcomes based on user choices between best and worst case scenarios.
+An interactive Streamlit application that simulates franchise business decisions and their impacts through a series of scenario-based choices.
 
 ## Description
 
-The "Best Case, Worst Case" simulator helps franchise owners or potential franchise owners explore different business scenarios. Users can:
+The Franchise Cockpit Simulator helps franchise owners and potential entrepreneurs explore different business scenarios and their outcomes. Users navigate through business challenges, making strategic decisions that affect key performance metrics. The simulator provides a safe environment to experiment with different approaches to franchise management.
 
-1. Enter their own scenario topic or choose from randomly generated options
-2. Make a series of choices between "best case" and "worst case" paths
-3. See the simulated impact of these decisions on their franchise venture
+## Key Features
 
-The simulator provides a realistic way to explore different decision paths and their potential consequences in the franchising world.
+- **Interactive Decision Making**: Choose between different approaches to business challenges
+- **Real-time Metric Tracking**: Monitor how decisions impact cash flow, customer satisfaction, growth potential, and risk level
+- **Decision Path Visualization**: View a visual representation of your decision journey
+- **AI-Generated Analysis**: Receive an AI-powered analysis of your business strategy at the end of the simulation
+- **Human-Friendly Impact Descriptions**: Get narrative explanations of how your choices affect your business
+- **Responsive UI**: Clean, modern interface with intuitive navigation
+- **Custom Scenarios**: Enter your own scenario topics for personalized simulations
 
-## How to Run
+## Testing
 
 1. Install the required dependencies:
 
@@ -20,17 +24,42 @@ The simulator provides a realistic way to explore different decision paths and t
    pip install -r requirements.txt
    ```
 
-2. Run the Streamlit application:
+2. Set up your Anthropic API key:
+
+   Create a secrets.toml file in the .streamlit directory with your Anthropic API key:
+
+   ```
+   ANTHROPIC_API_KEY = "your-api-key-here"
+   ```
+
+3. Run the Streamlit application:
 
    ```
    streamlit run app.py
    ```
 
-3. Open your browser and go to the URL displayed in the terminal (typically http://localhost:8501)
+4. Open your browser and go to the URL displayed in the terminal (typically http://localhost:8501)
 
-## Features
+## Simulation Flow
 
-- Interactive scenario selection
-- Branching decision paths
-- Visual representation of business impacts
-- Realistic franchise scenarios
+1. **Topic Selection**: Choose a predefined scenario or create your own
+2. **Decision Making**: Navigate through 5 sequential business scenarios
+3. **Impact Assessment**: See how each choice affects your business metrics
+4. **Final Analysis**: Receive a comprehensive analysis of your business strategy
+5. **Results Summary**: Review your decision path and key performance indicators
+
+## Technical Details
+
+The application is built with:
+
+- **Streamlit**: For the web interface and application flow
+- **Claude by Anthropic**: For generating custom scenarios and business analysis
+- **SVG**: For decision path visualization
+- **Pandas/NumPy**: For data handling and calculations
+
+## Notes
+
+- The simulation uses a mix of predefined scenarios and AI-generated content
+- Custom topics entered by users will generate unique scenarios using Claude
+- The business metrics are simulated and should not be taken as financial advice
+- The final analysis provides insights based on the choices made during simulation
