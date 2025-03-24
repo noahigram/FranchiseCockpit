@@ -91,7 +91,6 @@ def apply_custom_css():
     .stApp {
         max-width: 1200px;
         margin: 0 auto;
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
     }
     .stButton button {
         background-color: #4e89ae;

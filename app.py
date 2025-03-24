@@ -344,51 +344,44 @@ def display_summary():
 
 # Show intro animation if it's the first visit
 if st.session_state.show_intro:
-    # Set page background and styling
-    st.markdown("""
-    <style>
-    .stApp {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # Set page with native Streamlit styling
     
     # Title section with native Streamlit components
-    st.markdown("<h1 style='text-align: center; color: white; font-size: 3rem; margin-top: 2rem;'>Franchise Cockpit Simulator</h1>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; color: white; font-size: 1.5rem; margin-bottom: 2rem;'>Decision Simulator</h2>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; font-size: 3rem; margin-top: 2rem;'>Franchise Cockpit Simulator</h1>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; font-size: 1.5rem; margin-bottom: 2rem;'>Decision Simulator</h2>", unsafe_allow_html=True)
     
     # Description
-    st.markdown("<p style='text-align: center; color: white; font-size: 1.1rem; max-width: 800px; margin: 0 auto 2rem auto;'>Explore the impact of different business decisions on your franchise's success. Navigate challenging scenarios and see how your choices affect key metrics like cash flow, customer satisfaction, growth potential, and risk level.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 1.1rem; max-width: 800px; margin: 0 auto 2rem auto;'>Explore the impact of different business decisions on your franchise's success. Navigate challenging scenarios and see how your choices affect key metrics like cash flow, customer satisfaction, growth potential, and risk level.</p>", unsafe_allow_html=True)
     
     # Feature cards using Streamlit columns
-    st.markdown("<h3 style='text-align: center; color: white; margin-bottom: 1.5rem;'>Key Features</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; margin-bottom: 1.5rem;'>Key Features</h3>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.markdown("""
-        <div style="background-color: rgba(255, 255, 255, 0.1); padding: 1.5rem; border-radius: 1rem; text-align: center; backdrop-filter: blur(5px); height: 200px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="background-color: rgba(240, 242, 246, 0.8); padding: 1.5rem; border-radius: 1rem; text-align: center; height: 200px; display: flex; flex-direction: column; justify-content: center;">
             <div style="font-size: 2rem; margin-bottom: 0.5rem;">💼</div>
-            <h3 style="color: white; margin-bottom: 0.5rem;">Business Metrics</h3>
-            <p style="color: white;">Track key performance indicators in real-time</p>
+            <h3 style="margin-bottom: 0.5rem;">Business Metrics</h3>
+            <p>Track key performance indicators in real-time</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown("""
-        <div style="background-color: rgba(255, 255, 255, 0.1); padding: 1.5rem; border-radius: 1rem; text-align: center; backdrop-filter: blur(5px); height: 200px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="background-color: rgba(240, 242, 246, 0.8); padding: 1.5rem; border-radius: 1rem; text-align: center; height: 200px; display: flex; flex-direction: column; justify-content: center;">
             <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔄</div>
-            <h3 style="color: white; margin-bottom: 0.5rem;">Decision Paths</h3>
-            <p style="color: white;">Explore different choices and outcomes</p>
+            <h3 style="margin-bottom: 0.5rem;">Decision Paths</h3>
+            <p>Explore different choices and outcomes</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
         st.markdown("""
-        <div style="background-color: rgba(255, 255, 255, 0.1); padding: 1.5rem; border-radius: 1rem; text-align: center; backdrop-filter: blur(5px); height: 200px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="background-color: rgba(240, 242, 246, 0.8); padding: 1.5rem; border-radius: 1rem; text-align: center; height: 200px; display: flex; flex-direction: column; justify-content: center;">
             <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
-            <h3 style="color: white; margin-bottom: 0.5rem;">Visualize Impact</h3>
-            <p style="color: white;">See how choices affect your franchise</p>
+            <h3 style="margin-bottom: 0.5rem;">Visualize Impact</h3>
+            <p>See how choices affect your franchise</p>
         </div>
         """, unsafe_allow_html=True)
     
