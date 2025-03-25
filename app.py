@@ -1,8 +1,6 @@
 import streamlit as st
-
 import random
-from PIL import Image
-import base64
+
 
 # Import custom modules
 from utils import (

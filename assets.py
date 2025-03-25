@@ -1,7 +1,4 @@
 import streamlit as st
-import base64
-from PIL import Image
-import io
 import html
 
 # Icons for different business aspects

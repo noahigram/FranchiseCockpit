@@ -1,0 +1,12 @@
+[theme]
+primaryColor="#4e89ae"
+backgroundColor="#0e1117"
+secondaryBackgroundColor="#262730"
+textColor="#ffffff"
+
+
+[browser]
+gatherUsageStats=false
+
+[runner]
+fastRerenderThreshold=1000 

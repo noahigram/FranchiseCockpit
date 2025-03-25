@@ -233,7 +233,8 @@ def generate_simulation_analysis(scenario_history, final_metrics):
     decisions_text = ""
     for i, scenario in enumerate(scenario_history):
         decisions_text += f"Decision {i+1}: {scenario['topic']}\n"
-        decisions_text += f"Choice: {scenario['choice']} - {scenario['title']}\n\n"
+        decisions_text += f"Choice: {scenario['choice']} - {scenario['title']}\n"
+        decisions_text += f"Impact: {scenario['consequences']}\n\n"
     
     # Format the final metrics
     metrics_text = "Final Business Metrics:\n"
@@ -243,35 +244,95 @@ def generate_simulation_analysis(scenario_history, final_metrics):
     metrics_text += f"- Risk Level: {final_metrics['risk_level']}%\n"
     
     # Create a prompt for Claude
-    prompt = f"""You are a franchise business analyst. Review the following decisions made by a franchise owner in a simulation and provide a brief analysis.
+    prompt = f"""You are a franchise business analyst. Review the following decisions made by a franchise owner in a simulation and provide a detailed analysis.
 
 {decisions_text}
 {metrics_text}
 
 Please provide:
-1. A concise analysis (2-3 sentences) of the user's decision-making patterns and strategy
-2. A brief assessment (2-3 sentences) of the business's health and likely future performance based on current metrics
-3. One key recommendation for future business decisions
+1. A detailed analysis (3-4 sentences) of the user's decision-making patterns and strategy, including specific examples from their choices
+2. A comprehensive assessment (3-4 sentences) of the business's health and likely future performance based on current metrics, with specific numbers and trends
+3. Two specific recommendations for future business decisions based on the observed patterns and current business state
 
-Keep your entire response under 150 words and be direct and insightful. Focus on the most impactful decisions and metrics."""
+Keep your response under 200 words and be direct and insightful. Focus on concrete examples and specific metrics. If the business is struggling, provide constructive feedback on how to improve. If it's doing well, suggest ways to maintain and build on the success."""
 
-    try:
-        # Get response from Claude
-        response = client.messages.create(
-            model="claude-3-sonnet-20240229",
-            max_tokens=300,  # Short response
-            temperature=0.7,
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        )
-        
-        # Return the text content
-        return response.content[0].text.strip()
-        
-    except Exception as e:
-        # Fallback if Claude fails
-        return "Analysis unavailable. Based on your metrics, your franchise appears to be on a path that reflects your decision-making approach. Consider balancing risk and growth in future business decisions." 
+    # Try to get response from Claude twice before falling back
+    for attempt in range(2):
+        try:
+            # Get response from Claude
+            response = client.messages.create(
+                model="claude-3-sonnet-20240229",
+                max_tokens=400,  # Increased for more detailed analysis
+                temperature=0.7,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            )
+            
+            # Return the text content
+            return response.content[0].text.strip()
+            
+        except Exception as e:
+            if attempt == 0:  # First attempt failed, try again
+                continue
+            else:  # Second attempt failed, generate fallback analysis
+                # Generate a detailed fallback analysis based on the metrics and history
+                analysis = []
+                
+                # Analyze decision patterns
+                best_case_count = sum(1 for s in scenario_history if s['choice'] == "Best Case")
+                worst_case_count = sum(1 for s in scenario_history if s['choice'] == "Worst Case")
+                
+                if best_case_count > worst_case_count:
+                    analysis.append(f"Your decision-making approach shows a preference for ambitious, growth-oriented strategies, choosing the best-case option in {best_case_count} out of {len(scenario_history)} scenarios.")
+                elif worst_case_count > best_case_count:
+                    analysis.append(f"Your decision-making approach shows a preference for conservative, risk-averse strategies, choosing the worst-case option in {worst_case_count} out of {len(scenario_history)} scenarios.")
+                else:
+                    analysis.append(f"Your decision-making approach shows a balanced strategy, choosing an equal mix of ambitious and conservative options across {len(scenario_history)} scenarios.")
+                
+                # Analyze current business state
+                if final_metrics['cash_flow'] < 50000:
+                    analysis.append(f"Your current cash position of ${final_metrics['cash_flow']} indicates financial strain. This may limit your ability to invest in growth opportunities.")
+                elif final_metrics['cash_flow'] < 100000:
+                    analysis.append(f"Your current cash position of ${final_metrics['cash_flow']} is moderate. While stable, you may want to build reserves for future opportunities.")
+                else:
+                    analysis.append(f"Your strong cash position of ${final_metrics['cash_flow']} provides a solid foundation for growth and investment opportunities.")
+                
+                # Analyze customer satisfaction
+                if final_metrics['customer_satisfaction'] < 40:
+                    analysis.append(f"Customer satisfaction at {final_metrics['customer_satisfaction']}% needs immediate attention. Focus on improving service quality and customer experience.")
+                elif final_metrics['customer_satisfaction'] < 60:
+                    analysis.append(f"Customer satisfaction at {final_metrics['customer_satisfaction']}% has room for improvement. Consider enhancing customer service initiatives.")
+                else:
+                    analysis.append(f"Strong customer satisfaction at {final_metrics['customer_satisfaction']}% indicates effective customer service. Look for ways to maintain and build on this success.")
+                
+                # Analyze growth potential
+                if final_metrics['growth_potential'] < 40:
+                    analysis.append(f"Growth potential at {final_metrics['growth_potential']}% suggests limited expansion opportunities. Focus on stabilizing current operations before pursuing growth.")
+                elif final_metrics['growth_potential'] < 60:
+                    analysis.append(f"Growth potential at {final_metrics['growth_potential']}% shows moderate expansion possibilities. Look for strategic opportunities to accelerate growth.")
+                else:
+                    analysis.append(f"High growth potential at {final_metrics['growth_potential']}% indicates strong expansion opportunities. Consider developing a detailed growth strategy.")
+                
+                # Analyze risk level
+                if final_metrics['risk_level'] > 60:
+                    analysis.append(f"High risk level at {final_metrics['risk_level']}% requires immediate attention. Focus on risk mitigation and stability measures.")
+                elif final_metrics['risk_level'] > 40:
+                    analysis.append(f"Moderate risk level at {final_metrics['risk_level']}% suggests careful monitoring. Consider implementing additional risk management strategies.")
+                else:
+                    analysis.append(f"Low risk level at {final_metrics['risk_level']}% indicates stable operations. Look for opportunities to optimize while maintaining this stability.")
+                
+                # Add specific recommendations
+                if final_metrics['cash_flow'] < 50000:
+                    analysis.append("Recommendations: 1) Implement cost-cutting measures to improve cash flow. 2) Focus on high-margin products or services to boost profitability.")
+                elif final_metrics['customer_satisfaction'] < 40:
+                    analysis.append("Recommendations: 1) Conduct customer surveys to identify specific pain points. 2) Invest in staff training to improve service quality.")
+                elif final_metrics['growth_potential'] < 40:
+                    analysis.append("Recommendations: 1) Review and optimize current operations. 2) Research new market opportunities aligned with your strengths.")
+                else:
+                    analysis.append("Recommendations: 1) Develop a detailed expansion strategy. 2) Consider investing in technology or staff to support growth.")
+                
+                return "\n".join(analysis) 
