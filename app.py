@@ -12,7 +12,7 @@ from utils import (
     FRANCHISE_SCENARIO_TOPICS
 )
 from scenarios import SCENARIO_DATABASE
-from generator import generate_custom_scenario, generate_scenario_title, generate_simulation_analysis
+from generator import generate_scenario, generate_simulation_analysis, generate_scenario_topics, generate_random_business_profile
 from assets import (
     styled_metric, 
     styled_card, 
@@ -58,6 +58,20 @@ if 'show_intro' not in st.session_state:
 # Add a new session state for topic selection
 if 'selected_topic' not in st.session_state:
     st.session_state.selected_topic = None
+
+if 'business_profile' not in st.session_state:
+    st.session_state.business_profile = None
+
+if 'scenario_topics' not in st.session_state:
+    st.session_state.scenario_topics = []
+
+if 'current_impact_multipliers' not in st.session_state:
+    st.session_state.current_impact_multipliers = {
+        'cash_flow': 1.0,
+        'customer_satisfaction': 1.0,
+        'growth_potential': 1.0,
+        'risk_level': 1.0
+    }
 
 # Callback functions for topic selection
 def select_topic(topic):
@@ -121,6 +135,14 @@ def reset_simulation():
     st.session_state.custom_scenarios = {}
     st.session_state.game_completed = False
     st.session_state.selected_topic = None  # Ensure topic selection is also reset
+    st.session_state.business_profile = None
+    st.session_state.scenario_topics = []
+    st.session_state.current_impact_multipliers = {
+        'cash_flow': 1.0,
+        'customer_satisfaction': 1.0,
+        'growth_potential': 1.0,
+        'risk_level': 1.0
+    }
 
 def get_scenario_data(scenario_key):
     """Get the scenario data from either predefined or custom scenarios"""
@@ -133,22 +155,28 @@ def get_scenario_data(scenario_key):
         return st.session_state.custom_scenarios[scenario_key]
     
     # Only use LLM for custom scenarios explicitly entered by the user
-    custom_scenario = generate_custom_scenario(scenario_key)
+    custom_scenario = generate_scenario(scenario_key, st.session_state.business_profile)
     st.session_state.custom_scenarios[scenario_key] = custom_scenario
     return custom_scenario
 
 def choose_scenario(topic, choice, title, consequences, next_scenarios):
     """Process the user's scenario choice and move to the next step"""
+    # Apply impact multipliers to consequences
+    adjusted_consequences = {
+        metric: int(value * st.session_state.current_impact_multipliers[metric])
+        for metric, value in consequences.items()
+    }
+    
     # Record the choice
     st.session_state.scenario_history.append({
         'topic': topic,
         'choice': choice,
         'title': title,
-        'consequences': consequences
+        'consequences': adjusted_consequences
     })
     
     # Apply consequences to metrics
-    st.session_state.business_metrics = apply_scenario_consequences(consequences, st.session_state.business_metrics)
+    st.session_state.business_metrics = apply_scenario_consequences(adjusted_consequences, st.session_state.business_metrics)
     
     # Check if we've reached the maximum number of decisions
     if len(st.session_state.scenario_history) >= MAX_DECISIONS:
@@ -157,16 +185,10 @@ def choose_scenario(topic, choice, title, consequences, next_scenarios):
     
     # Set up next scenario
     if next_scenarios:
-        # Filter next scenarios to only include ones from the predefined database
-        valid_next_scenarios = [s for s in next_scenarios if s in SCENARIO_DATABASE]
-        if valid_next_scenarios:
-            st.session_state.current_scenario = random.choice(valid_next_scenarios)
-        else:
-            # Fallback to a random predefined scenario
-            st.session_state.current_scenario = random.choice(list(SCENARIO_DATABASE.keys()))
+        st.session_state.current_scenario = random.choice(next_scenarios)
     else:
-        # Fallback to a random predefined scenario
-        st.session_state.current_scenario = random.choice(list(SCENARIO_DATABASE.keys()))
+        # Generate a new scenario based on the business profile
+        st.session_state.current_scenario = generate_scenario(st.session_state.business_profile)
     
     # Increment step
     st.session_state.step += 1
@@ -182,7 +204,7 @@ def display_summary():
     
     display_business_dashboard(st.session_state.business_metrics)
     
-    # Display path visualization - keep for now since it's SVG
+    # Display path visualization
     path_visual = generate_path_visual(st.session_state.scenario_history, width=800, height=200, text_color="#ffffff")
     st.markdown("### Your Decision Path", unsafe_allow_html=False)
     st.markdown(path_visual, unsafe_allow_html=True)
@@ -195,7 +217,8 @@ def display_summary():
         with st.spinner("Generating business analysis..."):
             analysis = generate_simulation_analysis(
                 st.session_state.scenario_history, 
-                st.session_state.business_metrics
+                st.session_state.business_metrics,
+                st.session_state.business_profile
             )
         
         # Display analysis in a highlighted box
@@ -229,7 +252,7 @@ def display_summary():
             # Generate a summary of how this choice affected metrics
             consequences = decision['consequences']
             
-            # Create human-friendly descriptions for the impact of each metric without redundant numbers
+            # Create human-friendly descriptions for the impact of each metric
             # Cash flow impact descriptions
             if consequences['cash_flow'] >= 30000:
                 cash_desc = "significantly boosted your finances"
@@ -278,7 +301,7 @@ def display_summary():
             else:
                 growth_desc = "maintained current growth trajectory"
             
-            # Risk level impact (note: for risk, increases are generally negative)
+            # Risk level impact
             if consequences['risk_level'] >= 15:
                 risk_desc = "substantially increased business vulnerability"
             elif consequences['risk_level'] >= 5:
@@ -328,14 +351,7 @@ def display_summary():
     col1, col2 = st.columns([1, 3])
     with col1:
         if st.button("Start New Simulation", key="new_sim_btn"):
-            # Reset all simulation data
-            st.session_state.step = 0
-            st.session_state.scenario_history = []
-            st.session_state.business_metrics = INITIAL_METRICS.copy()
-            st.session_state.current_scenario = None
-            st.session_state.custom_scenarios = {}
-            st.session_state.game_completed = False
-            st.session_state.selected_topic = None
+            reset_simulation()
             st.rerun()
 
 # Main App UI
@@ -346,10 +362,10 @@ if st.session_state.show_intro:
     
     # Title section with native Streamlit components
     st.markdown("<h1 style='text-align: center; font-size: 3rem; margin-top: 2rem;'>Franchise Cockpit Simulator</h1>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; font-size: 1.5rem; margin-bottom: 2rem;'>Decision Simulator</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; font-size: 1.5rem; margin-bottom: 2rem;'>Dynamic Decision Simulator</h2>", unsafe_allow_html=True)
     
     # Description
-    st.markdown("<p style='text-align: center; font-size: 1.1rem; max-width: 800px; margin: 0 auto 2rem auto;'>Explore the impact of different business decisions on your franchise's success. Navigate challenging scenarios and see how your choices affect key metrics like cash flow, customer satisfaction, growth potential, and risk level.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 1.1rem; max-width: 800px; margin: 0 auto 2rem auto;'>Explore the impact of different business decisions on your franchise's success. Enter your business profile to generate personalized scenarios and see how your choices affect key metrics.</p>", unsafe_allow_html=True)
     
     # Feature cards using Streamlit columns
     st.markdown("<h3 style='text-align: center; margin-bottom: 1.5rem;'>Key Features</h3>", unsafe_allow_html=True)
@@ -360,8 +376,8 @@ if st.session_state.show_intro:
         st.markdown("""
         <div style="background-color: rgba(240, 242, 246, 0.8); padding: 1.5rem; border-radius: 1rem; text-align: center; height: 200px; display: flex; flex-direction: column; justify-content: center;">
             <div style="font-size: 2rem; margin-bottom: 0.5rem;">💼</div>
-            <h3 style="margin-bottom: 0.5rem;">Business Metrics</h3>
-            <p>Track key performance indicators in real-time</p>
+            <h3 style="margin-bottom: 0.5rem; color: #2c3e50;">Business Profile</h3>
+            <p style="color: #34495e;">Create your unique business profile for personalized scenarios</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -369,8 +385,8 @@ if st.session_state.show_intro:
         st.markdown("""
         <div style="background-color: rgba(240, 242, 246, 0.8); padding: 1.5rem; border-radius: 1rem; text-align: center; height: 200px; display: flex; flex-direction: column; justify-content: center;">
             <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔄</div>
-            <h3 style="margin-bottom: 0.5rem;">Decision Paths</h3>
-            <p>Explore different choices and outcomes</p>
+            <h3 style="margin-bottom: 0.5rem; color: #2c3e50;">Dynamic Scenarios</h3>
+            <p style="color: #34495e;">Generate unique scenarios based on your business context</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -378,8 +394,8 @@ if st.session_state.show_intro:
         st.markdown("""
         <div style="background-color: rgba(240, 242, 246, 0.8); padding: 1.5rem; border-radius: 1rem; text-align: center; height: 200px; display: flex; flex-direction: column; justify-content: center;">
             <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
-            <h3 style="margin-bottom: 0.5rem;">Visualize Impact</h3>
-            <p>See how choices affect your franchise</p>
+            <h3 style="margin-bottom: 0.5rem; color: #2c3e50;">Impact Control</h3>
+            <p style="color: #34495e;">Adjust the impact of decisions on key metrics</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -394,21 +410,24 @@ if st.session_state.show_intro:
     
     st.stop()
 
-# Main header
-st.title("🏢 Franchise Cockpit Simulator")
-st.markdown("### Explore the outcomes of different franchise decisions")
+# Main header - only show on start page
+if st.session_state.show_intro:
+    st.title("🏢 Franchise Cockpit Simulator")
+    st.markdown("### Explore the outcomes of different franchise decisions")
+else:
+    # Move header to sidebar
+    st.sidebar.title("🏢 Franchise Cockpit Simulator")
+    st.sidebar.markdown("### Explore the outcomes of different franchise decisions")
+    st.sidebar.markdown("---")  # Add a separator after the header
 
 # Check if game is completed
 if st.session_state.game_completed:
     display_summary()
     st.stop()
 
-# Display the business dashboard
-display_business_dashboard(st.session_state.business_metrics)
-
-# Step 0: Topic Selection
+# Step 0: Business Profile Input
 if st.session_state.step == 0:
-    st.markdown("<h2>Choose a Scenario Topic</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>Create Your Business Profile</h2>", unsafe_allow_html=True)
     
     # Replace HTML-based card with native Streamlit components
     with st.container():
@@ -418,84 +437,179 @@ if st.session_state.step == 0:
             This simulator helps franchise owners and potential entrepreneurs explore different scenarios 
             and their impact on business outcomes.
             
-            To begin, either select from one of our suggested scenario topics or create your own.
+            To begin, please provide details about your business to generate personalized scenarios.
             """
         )
     
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
+    # Business profile input
+    with st.form("business_profile_form"):
+        business_profile = st.text_area(
+            "Describe your business:",
+            value=st.session_state.business_profile if st.session_state.business_profile else "",
+            placeholder="Include details about your industry, size, location, target market, and any specific challenges or opportunities you're facing.",
+            height=200
+        )
+        
+        # Option to upload relevant documents
+        uploaded_files = st.file_uploader(
+            "Upload relevant business documents (optional):",
+            type=['txt', 'pdf', 'doc', 'docx'],
+            accept_multiple_files=True
+        )
+        
         # Option to enter custom topic
-        custom_topic = st.text_input("Enter your own scenario topic:", placeholder="e.g., Hiring new staff")
+        custom_topic = st.text_input(
+            "Enter a specific scenario topic (optional):",
+            placeholder="e.g., Hiring new staff, Marketing campaign, etc."
+        )
         
-        # Option to choose from predefined topics
-        st.markdown("<p><strong>Or select from suggested topics:</strong></p>", unsafe_allow_html=True)
+        # Create two columns for the buttons
+        col1, col2 = st.columns([3, 1])
         
-        # Display topics in a grid
-        topic_cols = st.columns(3)
+        with col1:
+            submitted = st.form_submit_button("Generate Scenarios")
+            if submitted and business_profile:
+                with st.spinner("Generating personalized scenarios..."):
+                    # Generate scenario topics based on business profile
+                    st.session_state.scenario_topics = generate_scenario_topics(
+                        business_profile,
+                        uploaded_files,
+                        custom_topic
+                    )
+                    
+                    if st.session_state.scenario_topics:
+                        st.session_state.business_profile = business_profile
+                        st.session_state.step = 0.5  # Use intermediate step for topic selection
+                        st.rerun()
+                    else:
+                        st.error("Failed to generate scenarios. Please try again with more detailed business information.")
         
-        # Display topics
-        random_topics = random.sample(FRANCHISE_SCENARIO_TOPICS, min(6, len(FRANCHISE_SCENARIO_TOPICS)))
-        
-        for i, topic in enumerate(random_topics):
-            with topic_cols[i % 3]:
-                if st.button(f"📋 {topic}", key=f"topic_{topic}", on_click=select_topic, args=(topic,)):
-                    pass  # Logic is handled in the callback
+        with col2:
+            if st.form_submit_button("Generate Random Profile"):
+                with st.spinner("Generating a random business profile..."):
+                    random_profile = generate_random_business_profile()
+                    st.session_state.business_profile = random_profile
+                    st.rerun()
     
-    with col2:
-        # Replace HTML-based styled card with native Streamlit components
-        st.markdown("#### Simulation Tips")
-        with st.expander("Tips for better simulation results", expanded=True):
-            st.markdown("- Each decision will affect your business metrics")
-            st.markdown("- The simulation will run for 5 decisions")
-            st.markdown("- There are no \"right\" or \"wrong\" choices")
-            st.markdown("- Try different paths to see various outcomes")
-            st.markdown("- Keep an eye on your cash flow - if it reaches zero, your franchise fails!")
+    # Display example business profile
+    with st.expander("Example Business Profile", expanded=False):
+        st.markdown("""
+        **Industry:** Fast-casual restaurant franchise
+        
+        **Location:** Downtown area of a mid-sized city
+        
+        **Size:** 2,500 square feet with 30 seats
+        
+        **Target Market:** Young professionals and families
+        
+        **Current Challenges:**
+        - High employee turnover
+        - Increasing competition from new restaurants
+        - Need to modernize ordering system
+        
+        **Opportunities:**
+        - Growing lunch crowd from nearby office buildings
+        - Potential for delivery service expansion
+        - Interest in healthy menu options
+        
+        **Goals:**
+        - Improve customer satisfaction
+        - Reduce operational costs
+        - Increase market share
+        """)
+
+# Step 0.5: Topic Selection (intermediate step)
+elif st.session_state.step == 0.5:
+    st.markdown("<h2>Select a Scenario Topic</h2>", unsafe_allow_html=True)
     
-    # Process topic selection
-    if custom_topic:
-        # If custom topic is entered, use it directly
-        selected_topic = custom_topic
-        
-        # For custom topics, create a more formal title
-        formatted_topic = custom_topic.strip().title()
-        st.session_state.current_scenario = formatted_topic
-        
-        # Generate custom scenario data
-        if formatted_topic not in st.session_state.custom_scenarios:
-            custom_scenario = generate_custom_scenario(formatted_topic)
-            st.session_state.custom_scenarios[formatted_topic] = custom_scenario
+    st.info(
+        """
+        Based on your business profile, we've generated the following scenario topics.
+        Select one to begin your simulation journey.
+        """
+    )
+    
+    # Display the generated scenario topics as clickable cards
+    st.markdown("### Available Scenarios")
+    
+    # Create rows of 3 topics each
+    for i in range(0, len(st.session_state.scenario_topics), 3):
+        cols = st.columns(3)
+        for j in range(3):
+            if i + j < len(st.session_state.scenario_topics):
+                topic = st.session_state.scenario_topics[i + j]
+                with cols[j]:
+                    # Use a more contrasting background with clear text styling
+                    st.markdown(f"""
+                    <div style="background-color: #2c3e50; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; min-height: 80px; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                        <h4 style="margin-top: 0; margin-bottom: 0.5rem; color: white;">{topic}</h4>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    if st.button(f"Select", key=f"select_{i}_{j}"):
+                        st.session_state.current_scenario = topic
+                        st.session_state.step = 1
+                        st.rerun()
+    
+    # Option to add a custom topic
+    st.markdown("### Or Enter Your Own Topic")
+    custom_topic_col1, custom_topic_col2 = st.columns([3, 1])
+    with custom_topic_col1:
+        user_custom_topic = st.text_input("Custom topic:", placeholder="Enter your own scenario topic")
+    with custom_topic_col2:
+        if st.button("Add Topic", disabled=not user_custom_topic):
+            st.session_state.current_scenario = user_custom_topic
+            st.session_state.step = 1
+            st.rerun()
             
-        st.session_state.step = 1
-        st.rerun()
-    elif st.session_state.selected_topic:
-        # Process the selected topic from the session state
-        if st.session_state.selected_topic in SCENARIO_DATABASE:
-            st.session_state.current_scenario = st.session_state.selected_topic
-        else:
-            # Fallback to random predefined scenario
-            st.session_state.current_scenario = random.choice(list(SCENARIO_DATABASE.keys()))
-            
-        # Reset selected topic to avoid processing it again
-        st.session_state.selected_topic = None
-        st.session_state.step = 1
-        st.rerun()
-    
-    # Refresh options button
-    if st.button("🔄 Show different topics", key="refresh_topics"):
-        st.rerun()
+    # Option to regenerate topics
+    if st.button("Regenerate Topics"):
+        with st.spinner("Generating new scenario topics..."):
+            st.session_state.scenario_topics = generate_scenario_topics(
+                st.session_state.business_profile,
+                None,  # No files for regeneration
+                None   # No custom topic for regeneration
+            )
+            st.rerun()
 
 # Step 1+: Scenario handling
 elif st.session_state.step > 0:
     current_scenario_key = st.session_state.current_scenario
-    scenario_data = get_scenario_data(current_scenario_key)
+    
+    # Cache the scenario data in session state to avoid API calls when adjusting sliders
+    if 'current_scenario_data' not in st.session_state or st.session_state.current_scenario_data_key != current_scenario_key:
+        with st.spinner("Generating scenario..."):
+            scenario_data = generate_scenario(current_scenario_key, st.session_state.business_profile)
+            st.session_state.current_scenario_data = scenario_data
+            st.session_state.current_scenario_data_key = current_scenario_key
+            
+            # Save the original consequences to session state
+            if 'original_best_consequences' not in st.session_state:
+                st.session_state.original_best_consequences = {}
+            if 'original_worst_consequences' not in st.session_state:
+                st.session_state.original_worst_consequences = {}
+                
+            st.session_state.original_best_consequences = scenario_data['best_case']['consequences'].copy()
+            st.session_state.original_worst_consequences = scenario_data['worst_case']['consequences'].copy()
+    else:
+        scenario_data = st.session_state.current_scenario_data
+        
+        # Update the consequences based on the current multipliers
+        for metric, value in st.session_state.original_best_consequences.items():
+            scenario_data['best_case']['consequences'][metric] = int(value * st.session_state.current_impact_multipliers[metric])
+            
+        for metric, value in st.session_state.original_worst_consequences.items():
+            scenario_data['worst_case']['consequences'][metric] = int(value * st.session_state.current_impact_multipliers[metric])
     
     if scenario_data:
-        st.markdown(f"<h2>Scenario {st.session_state.step}: {current_scenario_key}</h2>", unsafe_allow_html=True)
-        
         # Show progress
         progress_text = f"Decision {st.session_state.step} of {MAX_DECISIONS}"
         st.progress(st.session_state.step / MAX_DECISIONS, text=progress_text)
+        
+        # 1. FIRST: Display business health dashboard
+        display_business_dashboard(st.session_state.business_metrics)
+        
+        # 2. SECOND: Display scenario description and options
+        st.markdown(f"<h2>Scenario {st.session_state.step}: {current_scenario_key}</h2>", unsafe_allow_html=True)
         
         # Display scenario description using native Streamlit components
         with st.container():
@@ -541,6 +655,10 @@ elif st.session_state.step > 0:
                     scenario_data['best_case']['consequences'],
                     scenario_data['best_case']['next_scenarios']
                 )
+                # Clear the cached scenario data to force a new API call for the next scenario
+                if 'current_scenario_data' in st.session_state:
+                    del st.session_state.current_scenario_data
+                    del st.session_state.current_scenario_data_key
                 st.rerun()
         
         with col2:
@@ -577,6 +695,77 @@ elif st.session_state.step > 0:
                     scenario_data['worst_case']['consequences'],
                     scenario_data['worst_case']['next_scenarios']
                 )
+                # Clear the cached scenario data to force a new API call for the next scenario
+                if 'current_scenario_data' in st.session_state:
+                    del st.session_state.current_scenario_data
+                    del st.session_state.current_scenario_data_key
+                st.rerun()
+                
+        # 3. THIRD: Add impact multiplier sliders
+        st.markdown("---")
+        st.markdown("<h4 style='font-size: 1.2em; margin-bottom: 0.5em;'>Adjust Impact Multipliers</h4>", unsafe_allow_html=True)
+        st.info("Use the sliders below to adjust how much each decision affects different aspects of your business.")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            # Larger label with custom styling
+            st.markdown("<div style='font-size: 1.1em; font-weight: 500; margin-bottom: 0.2em;'>Cash Flow Impact</div>", unsafe_allow_html=True)
+            # Smaller slider
+            new_cash_flow = st.slider(
+                "##",  # Hide the actual label
+                min_value=0.0,
+                max_value=2.0,
+                value=st.session_state.current_impact_multipliers['cash_flow'],
+                step=0.1,
+                key="cash_flow_slider"
+            )
+            if new_cash_flow != st.session_state.current_impact_multipliers['cash_flow']:
+                st.session_state.current_impact_multipliers['cash_flow'] = new_cash_flow
+                st.rerun()
+            
+            # Larger label with custom styling
+            st.markdown("<div style='font-size: 1.1em; font-weight: 500; margin-bottom: 0.2em; margin-top: 1em;'>Customer Satisfaction Impact</div>", unsafe_allow_html=True)
+            # Smaller slider
+            new_cust_sat = st.slider(
+                "##",  # Hide the actual label
+                min_value=0.0,
+                max_value=2.0,
+                value=st.session_state.current_impact_multipliers['customer_satisfaction'],
+                step=0.1,
+                key="customer_satisfaction_slider"
+            )
+            if new_cust_sat != st.session_state.current_impact_multipliers['customer_satisfaction']:
+                st.session_state.current_impact_multipliers['customer_satisfaction'] = new_cust_sat
+                st.rerun()
+        with col2:
+            # Larger label with custom styling
+            st.markdown("<div style='font-size: 1.1em; font-weight: 500; margin-bottom: 0.2em;'>Growth Potential Impact</div>", unsafe_allow_html=True)
+            # Smaller slider
+            new_growth = st.slider(
+                "##",  # Hide the actual label
+                min_value=0.0,
+                max_value=2.0,
+                value=st.session_state.current_impact_multipliers['growth_potential'],
+                step=0.1,
+                key="growth_potential_slider"
+            )
+            if new_growth != st.session_state.current_impact_multipliers['growth_potential']:
+                st.session_state.current_impact_multipliers['growth_potential'] = new_growth
+                st.rerun()
+            
+            # Larger label with custom styling
+            st.markdown("<div style='font-size: 1.1em; font-weight: 500; margin-bottom: 0.2em; margin-top: 1em;'>Risk Level Impact</div>", unsafe_allow_html=True)
+            # Smaller slider
+            new_risk = st.slider(
+                "##",  # Hide the actual label
+                min_value=0.0,
+                max_value=2.0,
+                value=st.session_state.current_impact_multipliers['risk_level'],
+                step=0.1,
+                key="risk_level_slider"
+            )
+            if new_risk != st.session_state.current_impact_multipliers['risk_level']:
+                st.session_state.current_impact_multipliers['risk_level'] = new_risk
                 st.rerun()
     
     # Display scenario history
@@ -587,32 +776,18 @@ elif st.session_state.step > 0:
         st.error("Game Over! Your franchise has run out of cash.")
         st.session_state.game_completed = True
         if st.button("Start New Simulation", key="new_sim_game_over_btn"):
-            # Reset all simulation data
-            st.session_state.step = 0
-            st.session_state.scenario_history = []
-            st.session_state.business_metrics = INITIAL_METRICS.copy()
-            st.session_state.current_scenario = None
-            st.session_state.custom_scenarios = {}
-            st.session_state.game_completed = False
-            st.session_state.selected_topic = None
+            reset_simulation()
             st.rerun()
     
     # Option to reset simulation
     if st.button("Reset Simulation", key="reset_sim_btn_main"):
-        # Reset all simulation data
-        st.session_state.step = 0
-        st.session_state.scenario_history = []
-        st.session_state.business_metrics = INITIAL_METRICS.copy()
-        st.session_state.current_scenario = None
-        st.session_state.custom_scenarios = {}
-        st.session_state.game_completed = False
-        st.session_state.selected_topic = None
+        reset_simulation()
         st.rerun()
 
 # Footer
 st.markdown("---")
 st.markdown("<h3>About the Simulator</h3>", unsafe_allow_html=True)
-st.markdown("This simulator is designed to help franchise owners and potential entrepreneurs understand the impact of different business decisions. The scenarios are based on common challenges faced in the franchising industry.")
+st.markdown("This simulator is designed to help franchise owners and potential entrepreneurs understand the impact of different business decisions. The scenarios are generated based on your business profile and can be customized to match your specific situation.")
 
 # Sidebar
 st.sidebar.title("Navigation")
@@ -625,12 +800,5 @@ if st.session_state.step > 0:
 
 st.sidebar.markdown("### Settings")
 if st.sidebar.button("Reset Simulation", key="reset_sim_btn_sidebar"):
-    # Reset all simulation data
-    st.session_state.step = 0
-    st.session_state.scenario_history = []
-    st.session_state.business_metrics = INITIAL_METRICS.copy()
-    st.session_state.current_scenario = None
-    st.session_state.custom_scenarios = {}
-    st.session_state.game_completed = False
-    st.session_state.selected_topic = None
+    reset_simulation()
     st.rerun() 
