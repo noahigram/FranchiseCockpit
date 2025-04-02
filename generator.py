@@ -1,5 +1,4 @@
 import random
-import anthropic
 import streamlit as st
 from scenarios import SCENARIO_DATABASE
 import requests
