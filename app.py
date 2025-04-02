@@ -199,7 +199,6 @@ def display_summary():
     
     # Display overall metrics with native Streamlit
     with st.container():
-        st.subheader("Final Business Status")
         st.info("Your franchise journey has concluded. Here's how your business is performing after all your decisions:")
     
     display_business_dashboard(st.session_state.business_metrics)

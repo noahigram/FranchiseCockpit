@@ -254,13 +254,13 @@ Generate a scenario that follows this structure exactly."""
                         
                     if not all(key in scenario["worst_case"] for key in ["title", "description", "consequences", "next_scenarios"]):
                         raise ValueError("Missing required keys in worst_case structure")
-                
+            
                     if not all(key in scenario["best_case"]["consequences"] for key in ["cash_flow", "customer_satisfaction", "growth_potential", "risk_level"]):
                         raise ValueError("Missing required keys in best_case consequences")
-                
+            
                     if not all(key in scenario["worst_case"]["consequences"] for key in ["cash_flow", "customer_satisfaction", "growth_potential", "risk_level"]):
                         raise ValueError("Missing required keys in worst_case consequences")
-                
+            
                     return scenario
                 except json.JSONDecodeError as e:
                     print(f"JSON parsing error: {str(e)}")
@@ -547,7 +547,7 @@ def generate_random_business_profile():
         "goals": ["string"]
     }
 
-    Make the profile realistic and specific, with concrete details that would be useful for generating business scenarios."""
+    Make the profile realistic and specific, with concrete details that would be useful for generating business scenarios. Ensure the profile is unique and different from previous generations."""
 
     try:
         # Prepare the API request
@@ -587,6 +587,11 @@ def generate_random_business_profile():
                     # Parse the JSON response
                     profile = json.loads(profile_text)
                     
+                    # Validate the required keys are present
+                    required_keys = ["industry", "location", "size", "target_market", "challenges", "opportunities", "goals"]
+                    if not all(key in profile for key in required_keys):
+                        raise ValueError("Missing required keys in profile structure")
+                    
                     # Format the profile as a markdown string
                     formatted_profile = f"""**Industry:** {profile['industry']}
 
@@ -605,6 +610,7 @@ def generate_random_business_profile():
 **Goals:**
 {chr(10).join(f"- {goal}" for goal in profile['goals'])}"""
                     
+                    print("Successfully generated new business profile")  # Debug print
                     return formatted_profile
                 except json.JSONDecodeError as e:
                     print(f"JSON parsing error: {str(e)}")
@@ -621,26 +627,5 @@ def generate_random_business_profile():
         
     except Exception as e:
         print(f"Error in API call: {str(e)}")
-        # Fallback to a generic profile if API fails
-        return """**Industry:** Fast-casual restaurant franchise
-
-**Location:** Downtown area of a mid-sized city
-
-**Size:** 2,500 square feet with 30 seats
-
-**Target Market:** Young professionals and families
-
-**Current Challenges:**
-- High employee turnover
-- Increasing competition from new restaurants
-- Need to modernize ordering system
-
-**Opportunities:**
-- Growing lunch crowd from nearby office buildings
-- Potential for delivery service expansion
-- Interest in healthy menu options
-
-**Goals:**
-- Improve customer satisfaction
-- Reduce operational costs
-- Increase market share""" 
+        # Instead of falling back to a hardcoded profile, raise the exception
+        raise Exception(f"Failed to generate business profile: {str(e)}") 
